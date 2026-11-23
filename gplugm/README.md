@@ -2,10 +2,12 @@
 
 Tasmota 14.5.0.1 for the gPlugM smart-meter reader (ESP32-C3, 4 MB, no PSRAM, safeboot layout). The meter's live power shows as a Matter outlet in Apple Home.
 
-The branch adds two things on top of upstream 14.5.0.1 (`2e35a2ab9`):
+The branch adds these changes on top of upstream 14.5.0.1 (`2e35a2ab9`):
 
 - The `relay_power` / `v_relay_power` Matter plugin (Electrical Power Measurement cluster 0x0090), backported from v16.0.0.
 - A fix for the Matter mDNS hostname: link-local IPv6 addresses carry a zone suffix (`%st1`), which made `mdns.add_hostname` fail, so controllers could not resolve the device.
+- The operational record is announced before the AddNOC reply. Otherwise the controller's first lookup goes unanswered while esp mdns probes the new service, and it then waits for a 45 s timeout, which makes Apple Home abort at the Apple Keychain fabric.
+- Expired candidate fabrics remove their mDNS record.
 
 It stays on 14.5 because the v16 Scripter crashes at boot on the gPlugM SML script (`free(strings_op)` in `Init_Scripter()`).
 
@@ -40,7 +42,7 @@ After changing any Matter `.be` file, regenerate `lib/libesp32/berry_matter/src/
 `matter_power.be` does two jobs:
 
 - Every 5 s it sends the endpoint the net import power (`Pi - Pe`, negative while exporting), the mean voltage and the summed current of the three phases.
-- Every 5 min it re-registers the Matter hostname and the operational `_matter._tcp` records, which do not resolve after boot on this build otherwise.
+- Every 5 min, and 60 s after boot, it re-registers the Matter hostname and the operational `_matter._tcp` records. The meter script turns on `SetOption55`, and Tasmota's mDNS start calls `MDNS.end()`, which wipes the records Matter registered a second earlier.
 
 Do not query heap statistics (`tasmota.memory()`, `Status 4`) while a controller is commissioning the device. Walking the heap during commissioning crashed the device.
 
