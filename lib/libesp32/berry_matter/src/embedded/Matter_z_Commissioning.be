@@ -255,7 +255,8 @@ class Matter_Commissioning
         self.hostname_eth  = string.replace(eth.find("mac"), ':', '')
         if !self.device.ipv4only || !eth.contains('ip6local')
           # log(format("MTR: calling mdns.add_hostname(%s, %s, %s)", self.hostname_eth, eth.find('ip6local',''), eth.find('ip','')), 4)
-          mdns.add_hostname(self.hostname_eth, eth.find('ip6local',''), eth.find('ip',''), eth.find('ip6',''))
+          # strip the IPv6 zone suffix (`fe80::...%st1`), otherwise the delegated hostname gets no addresses
+          mdns.add_hostname(self.hostname_eth, string.split(eth.find('ip6local',''), '%')[0], eth.find('ip',''), eth.find('ip6',''))
         else
           log(format("MTR: calling mdns.add_hostname(%s, %s)", self.hostname_eth, eth.find('ip','')), 3)
           mdns.add_hostname(self.hostname_eth, eth.find('ip',''))
@@ -265,7 +266,8 @@ class Matter_Commissioning
         self.hostname_wifi = string.replace(wifi.find("mac"), ':', '')
         if !self.device.ipv4only || !wifi.contains('ip6local')
           # log(format("MTR: calling mdns.add_hostname(%s, %s, %s)", self.hostname_wifi, wifi.find('ip6local',''), wifi.find('ip','')), 4)
-          mdns.add_hostname(self.hostname_wifi, wifi.find('ip6local',''), wifi.find('ip',''), wifi.find('ip6',''))
+          # strip the IPv6 zone suffix (`fe80::...%st1`), otherwise the delegated hostname gets no addresses
+          mdns.add_hostname(self.hostname_wifi, string.split(wifi.find('ip6local',''), '%')[0], wifi.find('ip',''), wifi.find('ip6',''))
         else
           log(format("MTR: calling mdns.add_hostname(%s, %s)", self.hostname_wifi, wifi.find('ip','')), 3)
           mdns.add_hostname(self.hostname_wifi, wifi.find('ip',''))
@@ -292,6 +294,10 @@ class Matter_Commissioning
       "T":0,                            # no support for TCP
       "SII":5000, "SAI":300
     }
+
+    # remove any previous PASE announce before creating new random instance names,
+    # otherwise re-opening an already open window leaves an orphan `_matterc` entry (upstream f151ad814)
+    self.mdns_remove_PASE()
 
     self.commissioning_instance_wifi = crypto.random(8).tohex()    # 16 characters random hostname
     self.commissioning_instance_eth = crypto.random(8).tohex()    # 16 characters random hostname
