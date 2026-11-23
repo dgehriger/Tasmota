@@ -51,7 +51,11 @@ def matter_mdns_refresh()
   var w = tasmota.wifi()
   if c.hostname_wifi == nil || !w.find("up", false) return end
   try
-    mdns.add_hostname(c.hostname_wifi, string.split(w.find("ip6local", ""), "%")[0], w.find("ip", ""), w.find("ip6", ""))
+    if global.matter_device.ipv4only
+      mdns.add_hostname(c.hostname_wifi, w.find("ip", ""))
+    else
+      mdns.add_hostname(c.hostname_wifi, string.split(w.find("ip6local", ""), "%")[0], w.find("ip", ""), w.find("ip6", ""))
+    end
   except .. as e, m
     log("MTR: hostname refresh: " + str(e) + " " + str(m), 4)   # expected once the host exists
   end
