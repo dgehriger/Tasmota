@@ -533,8 +533,12 @@ class Matter_Plugin_Root : Matter_Plugin
         # We have a candidate fabric, add it as expirable for 2 minutes
         new_fabric.fabric_candidate()
 
-        # move to next step
-        self.device.commissioning.start_operational_discovery_deferred(new_fabric)
+        # move to next step: announce the operational record before replying, and give the
+        # mDNS responder time to finish probing. The controller's first lookup is the only
+        # one sent with a unicast-reply request; if the record is not yet answerable it
+        # waits for its 45 s address-resolve timeout (Apple then aborts the Keychain fabric).
+        self.device.commissioning.start_operational_discovery(new_fabric)
+        tasmota.delay(1500)
 
         # we keep the PASE session for 1 minute
         if session.is_PASE()

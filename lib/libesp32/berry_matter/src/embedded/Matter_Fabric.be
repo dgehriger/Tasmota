@@ -229,6 +229,11 @@ class Matter_Fabric : Matter_Expirable
   # Called before removal
   def before_remove()
     log(format("MTR: -Fabric    fab='%s' (removed)", self.get_fabric_id().copy().reverse().tohex()), 3)
+    # a candidate fabric that expires without CommissioningComplete must also drop its
+    # `_matter._tcp` record, otherwise each failed pairing leaks one mDNS service slot
+    if self._store != nil && self._store.device != nil && self.get_device_id() != nil
+      self._store.device.commissioning.mdns_remove_op_discovery(self)
+    end
   end
 
   #############################################################
