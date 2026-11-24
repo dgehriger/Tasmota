@@ -1,22 +1,32 @@
-# matter_power.be - feed the SML meter readings into a Matter v_relay_power endpoint
+# matter_power.be - feed the SML meter readings into Matter v_relay_power endpoints
 #
 # Needs the v_relay_power Matter plugin (Tasmota >= 16.0.0, or the 14.5 backport
-# in D:\Development\tasmota-gplug145) and a Matter endpoint of type
-# "v_relay_power" named ENDPOINT below. Load from autoexec.be:
+# in D:\Development\tasmota-gplug145) and four Matter endpoints of type
+# "v_relay_power" named "<DeviceName> power" (total) and "<DeviceName> L1",
+# "<DeviceName> L2", "<DeviceName> L3" (per phase). A missing endpoint only makes
+# its MtrUpdate fail. Load from autoexec.be:
 #   load('matter_power.be')
 #
 # SML values sit under an empty sensor name in tasmota.read_sensors():
-#   {"":{"Pi":53,"Pe":0,"U1":235,"I1":0.25,...}}
+#   {"":{"Pi":53,"Pe":0,"PiL1":20,"PoL1":0,"U1":235,"I1":0.25,...}}
 
-var ENDPOINT = nil       # "<DeviceName> power", e.g. "Common power"; resolved on first tick
+var DEVNAME = nil        # DeviceName, e.g. "Common"; resolved on first tick
                          # (tasmota.cmd is not usable yet while autoexec.be runs at boot)
+
+def matter_power_update(name, p, u, i)
+  try
+    tasmota.cmd(format('MtrUpdate {"Name":"%s","Power":1,"ActivePower":%.1f,"Voltage":%.1f,"Current":%.2f}', name, p, u, i), true)
+  except .. as e, msg
+    log("MTR: " + name + ": " + str(e) + " " + str(msg), 3)
+  end
+end
 
 def matter_power_push()
   import json
-  if ENDPOINT == nil
+  if DEVNAME == nil
     var r = tasmota.cmd("DeviceName", true)
     if r == nil || r.find("DeviceName") == nil return end
-    ENDPOINT = r["DeviceName"] + " power"
+    DEVNAME = r["DeviceName"]
   end
   var s = tasmota.read_sensors()
   if s == nil return end
@@ -28,8 +38,13 @@ def matter_power_push()
   var p = real(m["Pi"]) - real(pe)                       # net import, negative while exporting
   var u = (real(m.find("U1", 0)) + real(m.find("U2", 0)) + real(m.find("U3", 0))) / 3
   var i = real(m.find("I1", 0)) + real(m.find("I2", 0)) + real(m.find("I3", 0))
-  var cmd = format('MtrUpdate {"Name":"%s","Power":1,"ActivePower":%.1f,"Voltage":%.1f,"Current":%.2f}', ENDPOINT, p, u, i)
-  tasmota.cmd(cmd, true)
+  matter_power_update(DEVNAME + " power", p, u, i)
+  for n: 1..3
+    var l = str(n)
+    matter_power_update(DEVNAME + " L" + l,
+      real(m.find("PiL" + l, 0)) - real(m.find("PoL" + l, 0)),
+      real(m.find("U" + l, 0)), real(m.find("I" + l, 0)))
+  end
 end
 
 tasmota.remove_cron("matter_power")

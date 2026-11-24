@@ -30,10 +30,13 @@ After changing any Matter `.be` file, regenerate `lib/libesp32/berry_matter/src/
 ## Device setup
 
 1. Enable Matter: `SetOption151 1`, then restart.
-2. Create the endpoint from the Berry console. The name must be `<DeviceName> power`:
+2. Create the endpoints from the Berry console: `<DeviceName> power` for the total, and `<DeviceName> L1`, `<DeviceName> L2`, `<DeviceName> L3` for the phases. Each phase gets its own outlet tile in Apple Home, and an already paired bridge picks up new endpoints without re-pairing:
 
    ```berry
    matter_device.bridge_add_endpoint('v_relay_power', {'name':'Rez power'})
+   matter_device.bridge_add_endpoint('v_relay_power', {'name':'Rez L1'})
+   matter_device.bridge_add_endpoint('v_relay_power', {'name':'Rez L2'})
+   matter_device.bridge_add_endpoint('v_relay_power', {'name':'Rez L3'})
    ```
 
 3. Upload `matter_power.be` and add `load('matter_power.be')` to `autoexec.be`.
@@ -41,7 +44,7 @@ After changing any Matter `.be` file, regenerate `lib/libesp32/berry_matter/src/
 
 `matter_power.be` does two jobs:
 
-- Every 5 s it sends the endpoint the net import power (`Pi - Pe`, negative while exporting), the mean voltage and the summed current of the three phases.
+- Every 5 s it sends the total endpoint the net import power (`Pi - Pe`, negative while exporting), the mean voltage and the summed current of the three phases, and each phase endpoint its own net power (`PiLn - PoLn`), voltage and current. A missing endpoint only makes its update fail.
 - Every 5 min, and 60 s after boot, it re-registers the Matter hostname and the operational `_matter._tcp` records. The meter script turns on `SetOption55`, and Tasmota's mDNS start calls `MDNS.end()`, which wipes the records Matter registered a second earlier.
 
 Do not query heap statistics (`tasmota.memory()`, `Status 4`) while a controller is commissioning the device. Walking the heap during commissioning crashed the device.
