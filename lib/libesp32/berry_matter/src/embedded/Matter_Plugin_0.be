@@ -49,7 +49,9 @@ class Matter_Plugin
   static var FEATURE_MAPS = {               # feature map per cluster
     0x0031: 0x04,                           # Put Eth for now which should work for any on-network
     0x0090: 0x02,                           # Electrical Power Measurement: AlternatingCurrent (bit 1)
-    0x009C: 0x01,                           # Power Topology: NodeTopology (bit 0) - meters the whole node
+    0x009C: 0x02,                           # Power Topology: TreeTopology (bit 1) - meters this endpoint only;
+                                            # NODE would claim the whole node, and with several power endpoints
+                                            # (total + phases) Apple Home then shows the node reading on every tile
     0x0102: 1 + 4,                          # Lift + PA_LF
     0x0202: 2,                              # Fan: Auto
   }

@@ -35,7 +35,9 @@
 # composed on a single endpoint
 #
 # Power Topology Cluster (0x009C)
-# - FeatureMap bit 0 (NODE): this endpoint meters the whole node
+# - FeatureMap bit 1 (TREE): this endpoint meters itself (and its children, of which it has
+#   none). NODE (bit 0) would claim the whole node; with several power endpoints on one
+#   device, such as a total and three phases, Apple Home then shows one value on every tile.
 # - no attributes or commands
 #
 # Electrical Power Measurement Cluster (0x0090)
@@ -71,7 +73,7 @@ class Matter_Plugin_OnOff_Power : Matter_Plugin_OnOff
   static var DISPLAY_NAME = "Relay + Power"         # display name of the plug-in
 
   static var CLUSTERS  = matter.consolidate_clusters(_class, {
-    0x009C: [],                                          # Power Topology (NODE feature, no attributes)
+    0x009C: [],                                          # Power Topology (TREE feature, no attributes)
     0x0090: [0,1,2,8,9,0x0A,0x0B,0x0C,0x0D,0x0E,0x11],   # Electrical Power Measurement
   })
   # Composed endpoint: On/Off Plug-in Unit (control) + Electrical Sensor (measurement)
